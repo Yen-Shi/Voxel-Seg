@@ -21,9 +21,10 @@ print('#test_files = {}'.format(test_files.shape[0]))
 num_of_files = train_files.shape[0]
 train_files, _ = random_shuffle(train_files)
 
-test_time = time.time()
+print('|', end='')
 for fn in range(num_of_files):
     current_data, current_label = pv.loadDataFile(train_files[fn], 42)
     print('*', end='')
     sys.stdout.flush()
-print('total time: ', time.time() - test_time)
+print('|')
+print('total time: ', time.time() - start_time)

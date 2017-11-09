@@ -112,7 +112,7 @@ def main(_):
 
             train_files, _ = random_shuffle(train_files)
 
-            print('Epoch {}: |'.format(epoch+1), end='')
+            print('Training epoch {}: |'.format(epoch+1), end='')
             total = 0    # annotated
             watched = 0  # in class hist
             correct = 0  # correct in class hist
@@ -151,8 +151,46 @@ def main(_):
                 sys.stdout.flush()
             print('|')
             elapsed_time = time.time() - start_time
-            print('Complete epoch {}, time: {}'.format(epoch+1, elapsed_time))
-            print('Accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
+            print('Training epoch {}, time: {}'.format(epoch+1, elapsed_time))
+            print('Training accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
+
+#################################################################################################################
+
+            # Start testing
+            start_time   = time.time()
+            num_of_files = test_files.shape[0]
+            testBatch    = 100
+
+            print('Testing epoch {}: |'.format(epoch+1), end='')
+            total = 0    # annotated
+            watched = 0  # in class hist
+            correct = 0  # correct in class hist
+            for fn in range(num_of_files):
+                current_data, current_label = pv.loadDataFile(test_files[fn], num_classes)
+                current_data = current_data.swapaxes(1,2).swapaxes(2,3).swapaxes(3,4)
+
+                num_of_batch = (current_data.shape[0] // testBatch)
+                end_index    = num_of_batch * testBatch
+                datas  = np.split(current_data[0:end_index], num_of_batch)
+                labels = np.split(current_label[0:end_index], num_of_batch)
+                
+                for bn in range(num_of_batch):
+                    feed_dict = {
+                        x: datas[bn],
+                        ori_y: labels[bn],
+                        c_weights: classes_hists,
+                        is_training: False,
+                    }
+                    n_t, n_e, n_c = sess.run([num_total, num_choose, num_correct], feed_dict=feed_dict)
+                    total += n_t
+                    watched += n_e
+                    correct += n_c
+                print('=', end="")
+                sys.stdout.flush()
+            print('|')
+            elapsed_time = time.time() - start_time
+            print('Testing epoch {}, time: {}'.format(epoch+1, elapsed_time))
+            print('Testing accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
 
     print('Done')
 
