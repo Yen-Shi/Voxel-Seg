@@ -19,8 +19,8 @@ def getDataFiles(input_file):
 def loadDataFile(file_name, num_classes, class_map=None):
     assert(Path(file_name).is_file())
     current_file  = h5py.File(file_name, 'r')
-    current_data  = np.array(current_file['data'])
-    current_label = np.array(current_file['label'])
+    current_data  = current_file['data'][()]
+    current_label = current_file['label'][()]
     current_file.close()
 
     # print('Load data:')
