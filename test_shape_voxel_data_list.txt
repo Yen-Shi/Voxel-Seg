@@ -1,0 +1,15 @@
+data/h5_scannet_samples/test_shape_voxel_data0.h5
+data/h5_scannet_samples/test_shape_voxel_data1.h5
+data/h5_scannet_samples/test_shape_voxel_data2.h5
+data/h5_scannet_samples/test_shape_voxel_data3.h5
+data/h5_scannet_samples/test_shape_voxel_data4.h5
+data/h5_scannet_samples/test_shape_voxel_data5.h5
+data/h5_scannet_samples/test_shape_voxel_data6.h5
+data/h5_scannet_samples/test_shape_voxel_data7.h5
+data/h5_scannet_samples/test_shape_voxel_data8.h5
+data/h5_scannet_samples/test_shape_voxel_data9.h5
+data/h5_scannet_samples/test_shape_voxel_data10.h5
+data/h5_scannet_samples/test_shape_voxel_data11.h5
+data/h5_scannet_samples/test_shape_voxel_data12.h5
+data/h5_scannet_samples/test_shape_voxel_data13.h5
+data/h5_scannet_samples/test_shape_voxel_data14.h5
