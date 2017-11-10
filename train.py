@@ -94,6 +94,10 @@ def main(_):
         train_writer.add_graph(tf.get_default_graph())
         test_writer = tf.summary.FileWriter(graph_location + '/test', sess.graph)
         test_writer.add_graph(tf.get_default_graph())
+        # merged = tf.summary.merge_all()
+        # tf.summary.scalar('accuracy', accuracy)
+        # summary = sess.run(merged, feed_dict=feed_dict())
+        # train_writer.add_summary(summary, i)
 
         # Load training and testing files
         train_files = pv.getDataFiles(FLAGS.train_data)
@@ -191,7 +195,10 @@ def main(_):
             elapsed_time = time.time() - start_time
             print('Testing epoch {}, time: {}'.format(epoch+1, elapsed_time))
             print('Testing accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
-
+        print('Training is completed !')
+        model_location = FLAGS.saveModel
+        save_path = saver.save(sess, model_location + '/voxnet-model.ckpt')
+        print("Model saved in file: %s" % save_path)
     print('Done')
 
 if __name__ == '__main__':
@@ -203,6 +210,9 @@ if __name__ == '__main__':
     parser.add_argument('--saveGraph', type=str,
                         default='./graph',
                         help='Subdirectory to save graph')
+    parser.add_argument('--saveModel', type=str,
+                        default='./model',
+                        help='Subdirectory to save model')
     parser.add_argument('-b', '--batchSize', type=int,
                         default=64,
                         help='Batch size')
