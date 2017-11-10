@@ -44,11 +44,11 @@ def main(_):
 
     with tf.name_scope('weighted_loss'):
         # Ref: https://stackoverflow.com/questions/44560549/unbalanced-data-and-weighted-cross-entropy
-        weights         = tf.reduce_sum(y_ * c_weights, axis=2)
-        ori_losses      = tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y)
-        weighted_losses = ori_losses * weights
-        regularizer     = tf.nn.l2_loss(weights)
-        loss            = tf.reduce_mean(weighted_losses)
+        y1D             = tf.reshape(y, [-1, num_classes])
+        y_1D            = tf.reshape(y_, [-1, num_classes])
+        weights         = tf.reduce_sum(y_1D * c_weights, axis=1)
+        ori_losses      = tf.nn.softmax_cross_entropy_with_logits(labels=y_1D, logits=y1D)
+        loss            = tf.reduce_mean(ori_losses * weights)
 
     with tf.name_scope('optimizer'):
         # Ref: https://stackoverflow.com/questions/36162180/gradient-descent-vs-adagrad-vs-momentum-in-tensorflow
@@ -57,7 +57,7 @@ def main(_):
         #      http://www.ritchieng.com/machine-learning/deep-learning/tensorflow/regularization/
         global_step     = tf.Variable(0, trainable=False)
         starter_rate    = tf.Variable(0.01, trainable=False)
-        learning_rate   = tf.train.exponential_decay(learning_rate=starter_rate,        
+        learning_rate   = tf.train.exponential_decay(learning_rate=starter_rate,
                                                      global_step=global_step,
                                                      decay_steps=decay_steps,
                                                      decay_rate=decay_rate,
@@ -246,7 +246,7 @@ if __name__ == '__main__':
                         help='Txt file containing test h5 filenames')
     parser.add_argument('--retrain', type=str,
                         default='',
-                        help='Retrain model')    
+                        help='Retrain model')
     parser.add_argument('--class_hist_file', type=str,
                         default='classes_hist.txt',
                         help='Histogram for weight norm')    
