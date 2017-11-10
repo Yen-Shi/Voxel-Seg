@@ -21,7 +21,7 @@ def calculate_acc(conf_matrix, class_hist, num_classes):
     correct = 0
     for i in range(num_classes):
         if class_hist[i] != 0:
-            total += sum(conf_matrix[i])
+            total += np.sum(conf_matrix[i])
             correct += conf_matrix[i][i]
     return total, correct
 
@@ -193,7 +193,7 @@ def main(_):
                         ori_y: labels[bn],
                         is_training: False,
                     }
-                    conf_matrix = sess.run([confusion_update], feed_dict=feed_dict)
+                    conf_matrix = sess.run(confusion_update, feed_dict=feed_dict)
                 print('=', end="")
                 sys.stdout.flush()
             print('|')
