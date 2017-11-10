@@ -33,9 +33,6 @@ def loadDataFile(file_name, num_classes, class_map=None):
     # unlabeled is last class (num_classes-1 since adding the one after)
     current_label[current_label == 255] = num_classes - 1
     
-    # needs to be 1-indexed
-    current_label += 1 
-    
     return current_data, current_label
 
 def readClassesHist(file_name, num_classes):

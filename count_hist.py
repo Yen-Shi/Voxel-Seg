@@ -17,9 +17,6 @@ def loadDataFile(file_name, num_classes, class_map=None):
     # unlabeled is last class (num_classes-1 since adding the one after)
     current_label[current_label == 255] = num_classes - 1
     
-    # needs to be 1-indexed
-    current_label += 1 
-    
     return current_label
 
 # Start
@@ -43,14 +40,16 @@ for fn in range(num_of_files):
 print('|')
 print('total time: ', time.time() - start_time)
 example = pv.readClassesHist('classes_hist.txt', 42)
+print('Original counter:')
+print(classes_counter)
 
-print('Write classes_hists to ' + 'classes_hist.txt')
-with open('classes_hist.txt', 'w') as f:
-    for i in range(42):
-        if example[i] != 0:
-            f.write('{}\t{}\n'.format(i+1, classes_counter[i]))
-        else:
-            f.write('{}\t{}\n'.format(i+1, 0))
+# print('Write classes_hists to ' + 'classes_hist.txt')
+# with open('classes_hist.txt', 'w') as f:
+#     for i in range(42):
+#         if example[i] != 0:
+#             f.write('{}\t{}\n'.format(i+1, classes_counter[i]))
+#         else:
+#             f.write('{}\t{}\n'.format(i+1, 0))
 
 classes_hist = np.zeros(42)
 for i in range(42):
