@@ -195,10 +195,11 @@ def main(_):
             elapsed_time = time.time() - start_time
             print('Testing epoch {}, time: {}'.format(epoch+1, elapsed_time))
             print('Testing accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
-        print('Training is completed !')
-        model_location = FLAGS.saveModel
-        save_path = saver.save(sess, model_location + '/voxnet-model.ckpt')
-        print("Model saved in file: %s" % save_path)
+            if epoch % 5 == 0:
+                print('Save model for every 5 epochs !')
+                model_location = FLAGS.saveModel
+                save_path = saver.save(sess, model_location + '/voxnet-model.ckpt')
+                print("Model saved in file: %s" % save_path)
     print('Done')
 
 if __name__ == '__main__':
