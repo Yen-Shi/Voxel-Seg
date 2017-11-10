@@ -16,6 +16,24 @@ def random_shuffle(x):
     x = x[perm]
     return x, perm
 
+def calculate_acc(conf_matrix, class_hist, num_classes):
+    total = 0
+    correct = 0
+    for i in range(num_classes):
+        if classes_hists[i] != 0:
+            total += sum(conf_matrix[i])
+            correct += conf_matrix[i][i]
+    return total, correct
+
+def check_data(data, label):
+    import collections as ccc
+    print('data: ')
+    print(data.shape)
+    print(ccc.Counter(data.ravel()))
+    print('lable: ')
+    print(label.shape)
+    print(ccc.Counter(label.ravel()))
+
 def main(_):
     learningRate = FLAGS.learningRate
     epoch_step   = FLAGS.epoch_step
@@ -24,7 +42,7 @@ def main(_):
     i_momentum   = FLAGS.momentum
 
     # Read class_hist
-    classes_hists   = pv.readClassesHist(FLAGS.class_hist_file, num_classes)
+    classes_hists = pv.readClassesHist(FLAGS.class_hist_file, num_classes)
 
     # set SGD optimizer's configuration
     decay_steps   = 1
@@ -38,14 +56,15 @@ def main(_):
         c_weights   = tf.placeholder(tf.float32, [num_classes], name="class_weights")
         is_training = tf.placeholder(tf.bool, name="is_training")
 
-    res_y = tf.reshape(ori_y, [-1, 62])
-    y_    = tf.one_hot(res_y, num_classes, name="y_true") # y_: 64 x 62 x 42
-    y     = model.voxnet(x, is_training, num_classes)
+    with tf.name_scope('main'):
+        res_y = tf.reshape(ori_y, [-1, 62])
+        y_    = tf.one_hot(res_y, num_classes, name="y_true") # y_: 64 x 62 x 42
+        y     = model.voxnet(x, is_training, num_classes)
+        y_1D  = tf.reshape(y_, [-1, num_classes])
+        y1D   = tf.reshape(y, [-1, num_classes])
 
     with tf.name_scope('weighted_loss'):
         # Ref: https://stackoverflow.com/questions/44560549/unbalanced-data-and-weighted-cross-entropy
-        y1D             = tf.reshape(y, [-1, num_classes])
-        y_1D            = tf.reshape(y_, [-1, num_classes])
         weights         = tf.reduce_sum(y_1D * c_weights, axis=1)
         ori_losses      = tf.nn.softmax_cross_entropy_with_logits(labels=y_1D, logits=y1D)
         loss            = tf.reduce_mean(ori_losses * weights)
@@ -68,22 +87,20 @@ def main(_):
             .minimize(loss=loss, global_step=global_step)
         )
 
-    with tf.name_scope('num_of_correct'):
-        mask = tf.reshape(tf.greater(c_weights, 0), [1, 1, num_classes])
-        mask = tf.tile(mask, [tf.shape(y)[0], tf.shape(y)[1], 1])
-        A = tf.where(mask, y, tf.zeros(tf.shape(y)))
-        A = tf.cast(tf.argmax(A, axis=2), dtype=tf.int32)
-        num_correct = tf.reduce_sum(tf.cast(tf.equal(A, res_y), dtype=tf.int32))
+    with tf.name_scope('confusion_matrix'):
+        # Ref: https://stackoverflow.com/questions/41617463/tensorflow-confusion-matrix-in-tensorboard
+        # Compute a per-batch confusion
+        batch_confusion = tf.confusion_matrix(labels=tf.argmax(y_1D, axis=1),
+                                              predictions=tf.argmax(y1D, axis=1),
+                                              num_classes=num_classes,
+                                              name='batch_confusion')
+        # Create an accumulator variable to hold the counts
+        confusion = tf.Variable(tf.zeros([num_classes, num_classes], dtype=tf.int32),
+                                name='confusion')
+        # Create the update op for doing a "+=" accumulation on the batch
+        confusion_update = confusion.assign(confusion + batch_confusion)
 
-        B = tf.where(mask, y_, tf.zeros(tf.shape(y_)))
-        B = tf.where(tf.equal(tf.reduce_sum(B, axis=2), 0),
-                     tf.zeros([tf.shape(B)[0], 62], dtype=tf.int32),
-                     tf.cast(tf.argmax(B, axis=2), dtype=tf.int32))
-        num_total   = tf.reduce_sum(tf.cast(tf.logical_not(tf.logical_or(tf.equal(res_y, 0), tf.equal(res_y, num_classes-1))), dtype=tf.int32))
-        num_choose  = tf.reduce_sum(tf.cast(tf.logical_not(tf.equal(B, 0)), dtype=tf.int32))
-
-    answer = tf.argmax(y, axis=2)
-
+    answer = tf.argmax(y1D, axis=1)
 
 
     with tf.Session() as sess:
@@ -117,9 +134,8 @@ def main(_):
             train_files, _ = random_shuffle(train_files)
 
             print('Training epoch {}: |'.format(epoch+1), end='')
-            total = 0    # annotated
-            watched = 0  # in class hist
-            correct = 0  # correct in class hist
+            sess.run(tf.variables_initializer([global_step, confusion], name='init_gStep_confmtx'))
+            conf_matrix = []
             for fn in range(num_of_files):
                 current_data, current_label = pv.loadDataFile(train_files[fn], num_classes)
                 current_data, perm = random_shuffle(current_data)
@@ -130,7 +146,7 @@ def main(_):
                 end_index    = num_of_batch * batchSize
                 datas  = np.split(current_data[0:end_index], num_of_batch)
                 labels = np.split(current_label[0:end_index], num_of_batch)
-                
+
                 for bn in range(num_of_batch):
                     feed_dict = {
                         x: datas[bn],
@@ -143,20 +159,14 @@ def main(_):
                     # test = sess.run(, feed_dict=feed_dict)
                     # print(np.array(test).shape)
                     # print(test)
-                    _, n_t, n_e, n_c = sess.run([train_step, num_total, num_choose, num_correct], feed_dict=feed_dict)
-                    total += n_t
-                    watched += n_e
-                    correct += n_c
-                    # import collections as ccc
-                    # print('Answers: ', ccc.Counter(labels[bn].ravel()))
-                    # print('Predict answers: ', ccc.Counter(ans.ravel()))
-                    # print('Correct: {} | {} | {}'.format(n_t, n_e, n_c))
+                    _, conf_matrix = sess.run([train_step, confusion_update], feed_dict=feed_dict)
                 print('=', end="")
                 sys.stdout.flush()
             print('|')
             elapsed_time = time.time() - start_time
             print('Training epoch {}, time: {}'.format(epoch+1, elapsed_time))
-            print('Training accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
+            total, correct = calculate_acc(conf_matrix, classes_hists, num_classes)
+            print('Training accuracy: {} | {} , {}%'.format(total, correct, correct / total * 100))
 
 #################################################################################################################
 
@@ -166,9 +176,8 @@ def main(_):
             testBatch    = 100
 
             print('Testing epoch {}: |'.format(epoch+1), end='')
-            total = 0    # annotated
-            watched = 0  # in class hist
-            correct = 0  # correct in class hist
+            sess.run(tf.variables_initializer([confusion], name='init_confmtx'))
+            conf_matrix = []
             for fn in range(num_of_files):
                 current_data, current_label = pv.loadDataFile(test_files[fn], num_classes)
                 current_data = current_data.swapaxes(1,2).swapaxes(2,3).swapaxes(3,4)
@@ -182,24 +191,23 @@ def main(_):
                     feed_dict = {
                         x: datas[bn],
                         ori_y: labels[bn],
-                        c_weights: classes_hists,
                         is_training: False,
                     }
-                    n_t, n_e, n_c = sess.run([num_total, num_choose, num_correct], feed_dict=feed_dict)
-                    total += n_t
-                    watched += n_e
-                    correct += n_c
+                    conf_matrix = sess.run([confusion_update], feed_dict=feed_dict)
                 print('=', end="")
                 sys.stdout.flush()
             print('|')
             elapsed_time = time.time() - start_time
             print('Testing epoch {}, time: {}'.format(epoch+1, elapsed_time))
-            print('Testing accuracy: {} | {} | {} , {}%'.format(total, watched, correct, correct / watched * 100))
+            total, correct = calculate_acc(conf_matrix, classes_hists, num_classes)
+            print('Testing accuracy: {} | {}, {}%'.format(total, correct, correct / total * 100))
+            
             if epoch % 5 == 0:
                 print('Save model for every 5 epochs !')
                 model_location = FLAGS.saveModel
                 save_path = saver.save(sess, model_location + '/voxnet-model.ckpt')
                 print("Model saved in file: %s" % save_path)
+    
     print('Done')
 
 if __name__ == '__main__':
