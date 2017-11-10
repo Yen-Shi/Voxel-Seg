@@ -76,11 +76,10 @@ def main(_):
         #      http://www.ritchieng.com/machine-learning/deep-learning/tensorflow/regularization/
         global_step     = tf.Variable(0, trainable=False)
         starter_rate    = tf.Variable(0.01, trainable=False)
-        learning_rate   = tf.train.exponential_decay(learning_rate=starter_rate,
-                                                     global_step=global_step,
-                                                     decay_steps=decay_steps,
-                                                     decay_rate=decay_rate,
-                                                     staircase=True)
+        learning_rate   = tf.train.inverse_time_decay(learning_rate=starter_rate,
+                                                      global_step=global_step,
+                                                      decay_steps=decay_steps,
+                                                      decay_rate=decay_rate)
         momentum        = tf.Variable(0.9, trainable=False)
         train_step = (
             tf.train.MomentumOptimizer(learning_rate, momentum)
