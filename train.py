@@ -20,7 +20,7 @@ def calculate_acc(conf_matrix, class_hist, num_classes):
     total = 0
     correct = 0
     for i in range(num_classes):
-        if classes_hists[i] != 0:
+        if class_hist[i] != 0:
             total += sum(conf_matrix[i])
             correct += conf_matrix[i][i]
     return total, correct
@@ -51,17 +51,17 @@ def main(_):
     # set logger's configuration
 
     with tf.name_scope('input_variables'):
-        x           = tf.placeholder(tf.float32, [None, 62, 31, 31, 2], name="x_input")
-        ori_y       = tf.placeholder(tf.int32, [None, 1, 62])
-        c_weights   = tf.placeholder(tf.float32, [num_classes], name="class_weights")
-        is_training = tf.placeholder(tf.bool, name="is_training")
+        x               = tf.placeholder(tf.float32, [None, 62, 31, 31, 2], name="x_input")
+        ori_y           = tf.placeholder(tf.int32, [None, 1, 62])
+        c_weights       = tf.placeholder(tf.float32, [num_classes], name="class_weights")
+        is_training     = tf.placeholder(tf.bool, name="is_training")
 
     with tf.name_scope('main'):
-        res_y = tf.reshape(ori_y, [-1, 62])
-        y_    = tf.one_hot(res_y, num_classes, name="y_true") # y_: 64 x 62 x 42
-        y     = model.voxnet(x, is_training, num_classes)
-        y_1D  = tf.reshape(y_, [-1, num_classes])
-        y1D   = tf.reshape(y, [-1, num_classes])
+        res_y           = tf.reshape(ori_y, [-1, 62])
+        y_              = tf.one_hot(res_y, num_classes, name="y_true") # y_: 64 x 62 x 42
+        y               = model.voxnet(x, is_training, num_classes)
+        y_1D            = tf.reshape(y_, [-1, num_classes])
+        y1D             = tf.reshape(y, [-1, num_classes])
 
     with tf.name_scope('weighted_loss'):
         # Ref: https://stackoverflow.com/questions/44560549/unbalanced-data-and-weighted-cross-entropy
